@@ -1,0 +1,27 @@
+fib: match -> number {
+  | 0 => 0
+  | 1 => 0
+  | n => (fib n - 1) + (fib n - 2)
+}
+
+pointify: fun (x: number y: number) -> [x, y] {
+  [:x, :y]
+}
+
+move: fun (something: [x, y]) {
+  something.x += 1
+  something.y += 2
+}
+
+foo: fun (x: string) -> string {
+  "hello #{x}"
+}
+
+foo: fun (x: number) -> string {
+  "hello number #{x}"
+}
+
+foo "evolbug" |> print
+foo 1234      |> print
+
+point: Point = pointify 100 100
