@@ -12,36 +12,43 @@ pub enum TokenType {
     EOF,
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct TokenPosition(usize, usize);
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub struct TokenPosition {
+    pub line: usize,
+    pub col: usize,
+}
 
 impl TokenPosition {
-    pub fn new(line: usize, col: usize) -> Self {
-        TokenPosition(line, col)
+    pub fn new(line: usize, col: usize) -> TokenPosition {
+        TokenPosition {
+            line,
+            col,
+        }
     }
 }
 
 impl Default for TokenPosition {
     fn default() -> Self {
-        TokenPosition(1, 1)
+        TokenPosition {
+            line: 1,
+            col: 1,
+        }
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct Token<'t> {
-    pub kind:     TokenType,
+#[derive(Debug, PartialEq, Clone)]
+pub struct Token {
+    pub token_type: TokenType,
     pub position: TokenPosition,
-    pub lexeme:   &'t str,
-    pub line:     &'t str,
+    pub content: String,
 }
 
-impl<'t> Token<'t> {
-    pub fn new(kind: TokenType, position: TokenPosition, lexeme: &'t str, line: &'t str) -> Self {
+impl Token {
+    pub fn new(token_type: TokenType, position: TokenPosition, content: String) -> Token {
         Token {
-            kind,
+            token_type,
             position,
-            lexeme,
-            line,
+            content,
         }
     }
 }
