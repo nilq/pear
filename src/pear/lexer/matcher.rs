@@ -1,5 +1,4 @@
-use super::tokenizer::Tokenizer;
-use super::token::{Token, TokenType};
+use super::*;
 
 macro_rules! token {
     ($tokenizer:expr, $token_type:ident, $accum:expr) => {{
@@ -12,10 +11,14 @@ macro_rules! token {
     }};
 }
 
+pub trait Matcher {
+    fn try_match(&self, tokenizer: &mut Tokenizer) -> ResResult<Option<Token>>;
+}
+
 pub struct NumberLiteralMatcher;
 
 impl Matcher for NumberLiteralMatcher {
-    fn try_match(&self, tokenizer: &mut Tokenizer) -> Option<Token> {
+    fn try_match(&self, tokenizer: &mut Tokenizer) -> ResResult<Option<Token>> {
         let mut accum = String::new();
         
         let curr = tokenizer.next().unwrap();
@@ -24,13 +27,13 @@ impl Matcher for NumberLiteralMatcher {
         } else if curr == '.' {
             accum.push_str("0.")
         } else {
-            return None
+            return Ok(None)
         }
         while !tokenizer.end() {
             let current = *tokenizer.peek().unwrap();
             if !current.is_whitespace() && current.is_digit(10) || current == '.' {
                 if current == '.' && accum.contains('.') {
-                    panic!("illegal decimal point")
+                    return Err(make_error(ResponseLocation::new(tokenizer.pos.clone(), 1), "weird extra decimal point".to_owned()))
                 }
                 accum.push(tokenizer.next().unwrap())
             } else {
@@ -39,7 +42,7 @@ impl Matcher for NumberLiteralMatcher {
         }
 
         if accum == "0.".to_owned() {
-            None
+            Ok(None)
         } else if accum.contains('.') {
 
             let literal: String = match accum.parse::<f64>() {
@@ -47,14 +50,14 @@ impl Matcher for NumberLiteralMatcher {
                 Err(error) => panic!("unable to parse float-literal: {}", error)
             };
 
-            Some(token!(tokenizer, Number, literal))
+            Ok(Some(token!(tokenizer, Number, literal)))
         } else {
             let literal: String = match u64::from_str_radix(accum.as_str(), 10) {
                 Ok(result) => result.to_string(),
                 Err(error) => panic!("unable to parse int-literal: {}", error)
             };
 
-            Some(token!(tokenizer, Number, literal))
+            Ok(Some(token!(tokenizer, Number, literal)))
         }
     }
 }
@@ -62,7 +65,7 @@ impl Matcher for NumberLiteralMatcher {
 pub struct StringLiteralMatcher;
 
 impl Matcher for StringLiteralMatcher {
-    fn try_match(&self, tokenizer: &mut Tokenizer) -> Option<Token> {
+    fn try_match(&self, tokenizer: &mut Tokenizer) -> ResResult<Option<Token>> {
         let mut raw_marker = false;
         let delimeter  = match *tokenizer.peek().unwrap() {
             '"'  => Some('"'),
@@ -77,7 +80,7 @@ impl Matcher for StringLiteralMatcher {
                     None
                 }
             },
-            _ => return None,
+            _ => return Ok(None),
         };
 
         tokenizer.advance();
@@ -115,31 +118,27 @@ impl Matcher for StringLiteralMatcher {
         }
         tokenizer.advance();
         if delimeter.is_some() {
-            Some(token!(tokenizer, Str, string))
+            Ok(Some(token!(tokenizer, Str, string)))
         } else {
-            None
+            Ok(None)
         }
     }
-}
-
-pub trait Matcher {
-    fn try_match(&self, tokenizer: &mut Tokenizer) -> Option<Token>;
 }
 
 pub struct IdentifierMatcher;
 
 impl Matcher for IdentifierMatcher {
-    fn try_match(&self, tokenizer: &mut Tokenizer) -> Option<Token> {
+    fn try_match(&self, tokenizer: &mut Tokenizer) -> ResResult<Option<Token>> {
         if !tokenizer.peek().unwrap().is_alphabetic() {
-            return None
+            return Ok(None)
         }
 
         let string = tokenizer.collect_if(|c| c.is_alphanumeric() || "_!?".contains(*c));
 
         if string.is_empty() {
-            None
+            Ok(None)
         } else {
-            Some(token!(tokenizer, Identifier, string))
+            Ok(Some(token!(tokenizer, Identifier, string)))
         }
     }
 }
@@ -147,13 +146,13 @@ impl Matcher for IdentifierMatcher {
 pub struct WhitespaceMatcher;
 
 impl Matcher for WhitespaceMatcher {
-    fn try_match(&self, tokenizer: &mut Tokenizer) -> Option<Token> {
+    fn try_match(&self, tokenizer: &mut Tokenizer) -> ResResult<Option<Token>> {
         let string = tokenizer.collect_if(|c| c.is_whitespace());
 
         if string.len() > 0 {
-            Some(token!(tokenizer, Whitespace, string))
+            Ok(Some(token!(tokenizer, Whitespace, string)))
         } else {
-            None
+            Ok(None)
         }
     }
 }
@@ -173,15 +172,15 @@ impl ConstantCharMatcher {
 }
 
 impl Matcher for ConstantCharMatcher {
-    fn try_match(&self, tokenizer: &mut Tokenizer) -> Option<Token> {
+    fn try_match(&self, tokenizer: &mut Tokenizer) -> ResResult<Option<Token>> {
         let c = tokenizer.peek().unwrap().clone();
         for constant in self.constants {
             if c == *constant {
                 tokenizer.advance();
-                return Some(token!(tokenizer, self.token_type.clone(), constant.to_string()))
+                return Ok(Some(token!(tokenizer, self.token_type.clone(), constant.to_string())))
             }
         }
-        None
+        Ok(None)
     }
 }
 
@@ -200,18 +199,18 @@ impl ConstantStringMatcher {
 }
 
 impl Matcher for ConstantStringMatcher {
-    fn try_match(&self, tokenizer: &mut Tokenizer) -> Option<Token> {
+    fn try_match(&self, tokenizer: &mut Tokenizer) -> ResResult<Option<Token>> {
         for constant in self.constants {
             let dat = tokenizer.clone().take(constant.len());
             if dat.size_hint().1.unwrap() != constant.len() {
-                return None
+                return Ok(None)
             }
             if dat.collect::<String>() == *constant {
                 tokenizer.advance_n(constant.len());
-                return Some(token!(tokenizer, self.token_type.clone(), constant.to_string()))
+                return Ok(Some(token!(tokenizer, self.token_type.clone(), constant.to_string())))
             }
         }
-        None
+        Ok(None)
     }
 }
 
@@ -230,22 +229,22 @@ impl KeyMatcher {
 }
 
 impl Matcher for KeyMatcher {
-    fn try_match(&self, tokenizer: &mut Tokenizer) -> Option<Token> {
+    fn try_match(&self, tokenizer: &mut Tokenizer) -> ResResult<Option<Token>> {
         for constant in self.constants.clone() {
             let dat = tokenizer.clone().take(constant.len());
             if dat.size_hint().1.unwrap() != constant.len() {
-                return None
+                return Ok(None)
             } else if &&dat.collect::<String>() == constant {
                 if let Some(c) = tokenizer.peek_n(constant.len()) {
                     if "_!".contains(*c) || c.is_alphanumeric() {
-                        return None
+                        return Ok(None)
                     }
                 }
 
                 tokenizer.advance_n(constant.len());
-                return Some(token!(tokenizer, self.token_type.clone(), constant.to_string()))
+                return Ok(Some(token!(tokenizer, self.token_type.clone(), constant.to_string())))
             }
         }
-        None
+        Ok(None)
     }
 }

@@ -1,4 +1,4 @@
-use super::{Token, TokenType, TokenPosition, Matcher};
+use super::*;
 
 #[derive(Clone)]
 pub struct Snapshot {
@@ -86,23 +86,23 @@ impl Tokenizer {
         self.peek_snapshot().unwrap().pos
     }
 
-    pub fn try_match_token(&mut self, matcher: &Matcher) -> Option<Token> {
+    pub fn try_match_token(&mut self, matcher: &Matcher) -> ResResult<Option<Token>> {
         if self.end() {
-            return Some(Token::new(TokenType::EOF,
+            return Ok(Some(Token::new(TokenType::EOF,
                                    TokenPosition::new(self.index, self.index),
-                                   String::new()));
+                                   String::new())));
         }
 
         self.take_snapshot();
-        match matcher.try_match(self) {
+        match matcher.try_match(self)? {
             Some(t) => {
                 self.commit_snapshot();
-                Some(t)
+                Ok(Some(t))
             }
 
             None => {
                 self.rollback_snapshot();
-                None
+                Ok(None)
             }
         }
     }

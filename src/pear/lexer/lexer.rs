@@ -1,11 +1,10 @@
-use std::rc::Rc;
-use super::token::{Token, TokenType};
-use super::tokenizer::Tokenizer;
-use super::matcher::*;
+use super::*;
 
-pub fn make_lexer(data: Vec<char>) -> Lexer {
+use std::rc::Rc;
+
+pub fn make_lexer<'l>(data: Vec<char>, lines: &'l Vec<String>) -> Lexer<'l> {
     let tokenizer = Tokenizer::new(data);
-    let mut lexer = Lexer::new(tokenizer);
+    let mut lexer = Lexer::new(tokenizer, lines);
 
     lexer.matchers_mut().push(Rc::new(NumberLiteralMatcher));
     lexer.matchers_mut().push(Rc::new(StringLiteralMatcher));
@@ -14,7 +13,7 @@ pub fn make_lexer(data: Vec<char>) -> Lexer {
     lexer.matchers_mut().push(Rc::new(bool_matcher));
 
     let key_matcher = KeyMatcher::new(TokenType::Keyword, &[
-        "fun", "match", "->"
+        "fun", "match", "->", "=>"
     ]);
     lexer.matchers_mut().push(Rc::new(key_matcher));
 
@@ -40,27 +39,29 @@ pub fn make_lexer(data: Vec<char>) -> Lexer {
     lexer
 }
 
-pub struct Lexer {
+pub struct Lexer<'l> {
     tokenizer: Tokenizer,
-    matchers: Vec<Rc<Matcher>>,
+    matchers:  Vec<Rc<Matcher>>,
+    lines:     &'l Vec<String>,
 }
 
-impl Lexer {
-    pub fn new(tokenizer: Tokenizer) -> Lexer {
-        Lexer {
+impl<'t> Lexer<'t> {
+    pub fn new(tokenizer: Tokenizer, lines: &'t Vec<String>) -> Self {
+        Self {
             tokenizer,
             matchers: Vec::new(),
+            lines,
         }
     }
 
-    pub fn match_token(&mut self) -> Option<Token> {
+    pub fn match_token(&mut self) -> ResResult<Option<Token>> {
         for matcher in &mut self.matchers {
-            match self.tokenizer.try_match_token(matcher.as_ref()) {
-                Some(t) => return Some(t),
-                None => continue,
+            match self.tokenizer.try_match_token(matcher.as_ref())? {
+                Some(t) => return Ok(Some(t)),
+                None    => continue,
             }
         }
-        None
+        Ok(None)
     }
 
     pub fn matchers(&self) -> &Vec<Rc<Matcher>> {
@@ -72,14 +73,22 @@ impl Lexer {
     }
 }
 
-impl Iterator for Lexer {
+impl<'t> Iterator for Lexer<'t> {
     type Item = Token;
 
     fn next(&mut self) -> Option<Token> {
         let token = match self.match_token() {
-            Some(n) => n,
-            None    => return None,
+            Ok(hmm) => match hmm {
+                Some(n) => n,
+                None    => return None,
+            },
+
+            Err(res) => {
+                res.display(self.lines.to_owned());
+                return None
+            },
         };
+
         match token.token_type {
             TokenType::EOF => None,
             _ => Some(token),
