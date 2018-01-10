@@ -21,7 +21,7 @@ pub enum ResponseType {
 }
 
 pub struct Response {
-    location: ResponseLocation,
+    location: Option<ResponseLocation>,
     kind:     ResponseType,
     message:  String,
 }
@@ -29,8 +29,8 @@ pub struct Response {
 impl Response {
     pub fn display(&self, lines: Vec<String>) {
         let (color, kind) = match self.kind {
-            ResponseType::Error   => ("red",    "error"),
-            ResponseType::Warning => ("yellow", "warn"),
+            ResponseType::Error   => ("red",    "wrong"),
+            ResponseType::Warning => ("yellow", "weird"),
         };
 
         let message = format!(
@@ -39,22 +39,28 @@ impl Response {
             self.message.bold(),
         );
         
-        let line_number = self.location.position.line;
-        
-        let prefix = format!("{:5} |", line_number + 1).blue().bold();
-        let line   = format!("{}{}", prefix, lines.get(line_number).unwrap());
+        if let Some(ref location) = self.location {
+            
+            let line_number = location.position.line;
+            
+            let prefix = format!("{:5} |", line_number + 1).blue().bold();
+            let line   = format!("{}{}", prefix, lines.get(line_number).unwrap());
 
-        let indicator = format!(
-                            "{:offset$}{:^<count$}", " ", " ".color(color).bold(),
-                            offset = prefix.len() + self.location.position.col - 2,
-                            count  = self.location.span + 1,
-                        );
+            let indicator = format!(
+                                "{:offset$}{:^<count$}", " ", " ".color(color).bold(),
+                                offset = prefix.len() + location.position.col - 2,
+                                count  = location.span + 1,
+                            );
 
-        println!("{}{}\n{}", message, line, indicator)
+            println!("{}{}\n{}", message, line, indicator)
+            
+        } else {
+            println!("{}", message);
+        }
     }
 }
 
-pub fn make_error(location: ResponseLocation, message: String) -> Response {
+pub fn make_error(location: Option<ResponseLocation>, message: String) -> Response {
     Response {
         location,
         kind: ResponseType::Error,

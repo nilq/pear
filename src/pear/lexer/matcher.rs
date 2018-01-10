@@ -33,7 +33,7 @@ impl Matcher for NumberLiteralMatcher {
             let current = *tokenizer.peek().unwrap();
             if !current.is_whitespace() && current.is_digit(10) || current == '.' {
                 if current == '.' && accum.contains('.') {
-                    return Err(make_error(ResponseLocation::new(tokenizer.pos.clone(), 1), "weird extra decimal point".to_owned()))
+                    return Err(make_error(Some(ResponseLocation::new(tokenizer.pos.clone(), 1)), "weird extra decimal point".to_owned()))
                 }
                 accum.push(tokenizer.next().unwrap())
             } else {
