@@ -33,7 +33,7 @@ impl Matcher for NumberLiteralMatcher {
             let current = *tokenizer.peek().unwrap();
             if !current.is_whitespace() && current.is_digit(10) || current == '.' {
                 if current == '.' && accum.contains('.') {
-                    return Err(make_error(Some(ResponseLocation::new(tokenizer.pos.clone(), 1)), "weird extra decimal point".to_owned()))
+                    return Err(make_error(Some(tokenizer.pos.clone()), "weird extra decimal point".to_owned()))
                 }
                 accum.push(tokenizer.next().unwrap())
             } else {
@@ -129,7 +129,7 @@ pub struct IdentifierMatcher;
 
 impl Matcher for IdentifierMatcher {
     fn try_match(&self, tokenizer: &mut Tokenizer) -> ResResult<Option<Token>> {
-        if !tokenizer.peek().unwrap().is_alphabetic() {
+        if !tokenizer.peek().unwrap().is_alphabetic() && !"_".contains(*tokenizer.peek().unwrap()) {
             return Ok(None)
         }
 
@@ -147,7 +147,7 @@ pub struct WhitespaceMatcher;
 
 impl Matcher for WhitespaceMatcher {
     fn try_match(&self, tokenizer: &mut Tokenizer) -> ResResult<Option<Token>> {
-        let string = tokenizer.collect_if(|c| c.is_whitespace());
+        let string = tokenizer.collect_if(|c| c.is_whitespace() && c != &'\n');
 
         if string.len() > 0 {
             Ok(Some(token!(tokenizer, Whitespace, string)))

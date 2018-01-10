@@ -1,58 +1,48 @@
 use super::lexer::TokenPosition;
 use colored::Colorize;
 
-pub struct ResponseLocation {
-    position: TokenPosition,
-    span:     usize,
-}
-
-impl ResponseLocation {
-    pub fn new(position: TokenPosition, span: usize) -> Self {
-        ResponseLocation {
-            position,
-            span
-        }
-    }
-}
-
 pub enum ResponseType {
     Error,
     Warning,
 }
 
 pub struct Response {
-    location: Option<ResponseLocation>,
+    position: Option<TokenPosition>,
     kind:     ResponseType,
     message:  String,
 }
 
 impl Response {
-    pub fn display(&self, lines: Vec<String>) {
+    pub fn display(&self, lines: &Vec<String>, path: &str) {
         let (color, kind) = match self.kind {
             ResponseType::Error   => ("red",    "wrong"),
             ResponseType::Warning => ("yellow", "weird"),
         };
 
         let message = format!(
-            "{}{}{}\n", kind.color(color).bold(),
+            "{}{}{}\n",
+
+            kind.color(color).bold(),
             ": ".white().bold(),
             self.message.bold(),
         );
-        
-        if let Some(ref location) = self.location {
-            
-            let line_number = location.position.line;
-            
-            let prefix = format!("{:5} |", line_number + 1).blue().bold();
-            let line   = format!("{}{}", prefix, lines.get(line_number).unwrap());
+
+        if let Some(ref position) = self.position {
+
+            let line_number = position.line;
+
+            let prefix = format!("{:5} |  ", line_number).blue().bold();
+            let line   = format!("{:5} {}\n{}{}", " ", "|".blue().bold(), prefix, lines.get(line_number - 1).unwrap());
 
             let indicator = format!(
-                                "{:offset$}{:^<count$}", " ", " ".color(color).bold(),
-                                offset = prefix.len() + location.position.col - 2,
-                                count  = location.span + 1,
+                                "{:6}{}{:offset$}{:^<count$}", " ", "|".bold().blue(), " ", " ".color(color).bold(),
+                                offset = position.col,
+                                count  = 2,
                             );
 
-            println!("{}{}\n{}", message, line, indicator)
+            let path_line = format!("{:5}{}{}", " ", "--> ".blue().bold(), path);
+
+            println!("{}{}\n{}\n{}", message, path_line, line, indicator)
             
         } else {
             println!("{}", message);
@@ -60,9 +50,9 @@ impl Response {
     }
 }
 
-pub fn make_error(location: Option<ResponseLocation>, message: String) -> Response {
+pub fn make_error(position: Option<TokenPosition>, message: String) -> Response {
     Response {
-        location,
+        position,
         kind: ResponseType::Error,
         message,
     }
