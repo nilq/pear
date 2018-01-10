@@ -1,6 +1,8 @@
 use super::lexer::*;
 use super::*;
 
+use std::rc::Rc;
+
 pub struct Parser {
     pub tokens: Vec<Token>,
     pub top:    usize,
@@ -36,13 +38,27 @@ impl Parser {
 
     fn expression(&mut self) -> ResResult<Expression> {
         let expression = self.atom()?;
+        
+        if expression.0 == ExpressionNode::EOF {
+            Ok(expression)
+        } else {
+            let backup_top = self.top;
+            
+            self.skip_types(vec![TokenType::Whitespace])?;
 
-        Ok(expression)
+            if self.current_type() == TokenType::Operator {
+                self.binary(expression)
+            } else {
+                self.top = backup_top;
+
+                Ok(expression)
+            }
+        }
     }
 
     fn atom(&mut self) -> ResResult<Expression> {
         use ExpressionNode::*;
-        
+
         self.skip_types(vec![TokenType::EOL, TokenType::Whitespace])?;
 
         if self.remaining() == 1 {
@@ -61,6 +77,76 @@ impl Parser {
         Ok(Expression::new(node, self.position()))
     }
 
+    fn binary(&mut self, expression: Expression) -> ResResult<Expression> {
+        let mut ex_stack = vec![expression];
+        let mut op_stack: Vec<(Operator, u8)> = Vec::new();
+
+        op_stack.push(Operator::from(&self.current_content()).unwrap());
+        self.next()?;
+
+        ex_stack.push(self.atom()?);
+
+        let mut done = false;
+
+        while ex_stack.len() > 1 {
+            if !done {
+                self.skip_types(vec![TokenType::Whitespace])?;
+
+                if self.current_type() != TokenType::Operator {
+                    println!("{:#?}", ex_stack);
+                    done = true;
+                    continue
+                }
+
+                let (op, precedence) = Operator::from(&self.current_content()).unwrap();
+                self.next()?;
+
+                if precedence >= op_stack.last().unwrap().1 {
+                    let left  = ex_stack.pop().unwrap();
+                    let right = ex_stack.pop().unwrap();
+
+                    ex_stack.push(
+                        Expression::new(
+                            ExpressionNode::Binary {
+                                right: Rc::new(left),
+                                op:    op_stack.pop().unwrap().0,
+                                left:  Rc::new(right),
+                            },
+                            self.position(),
+                        )
+                    );
+
+                    let term = self.atom()?;
+
+                    ex_stack.push(term);
+                    op_stack.push((op, precedence));
+
+                    continue
+                }
+                
+                let term = self.atom()?;
+
+                ex_stack.push(term);
+                op_stack.push((op, precedence));
+            }
+
+            let left  = ex_stack.pop().unwrap();
+            let right = ex_stack.pop().unwrap();
+
+            ex_stack.push(
+                Expression::new(
+                    ExpressionNode::Binary {
+                        right: Rc::new(left),
+                        op:    op_stack.pop().unwrap().0,
+                        left:  Rc::new(right),
+                    },
+                    self.position(),
+                )
+            );
+        }
+
+        Ok(ex_stack.pop().unwrap())
+    }
     
     fn next(&mut self) -> ResResult<()> {
         if self.top < self.tokens.len() {

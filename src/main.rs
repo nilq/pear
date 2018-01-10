@@ -7,19 +7,7 @@ use pear::parser::*;
 fn main() {
     let source =
 r#"
-100
-100.2
-
-"hello world"
-
-hey
-hello_yes
-_yes_hello
-
-what?
-grr!
-
-true
+10 + 10 - 1 * 2
 "#;
 
     let path = "source.pear";
