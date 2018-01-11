@@ -9,11 +9,11 @@ pub enum Type {
 }
 
 pub struct Visitor<'v> {
-    pub ast: &'v mut Vec<Statement>,
+    pub ast: &'v Vec<Statement>,
 }
 
 impl<'v> Visitor<'v> {
-    pub fn new(ast: &'v mut Vec<Statement>) -> Self {
+    pub fn new(ast: &'v Vec<Statement>) -> Self {
         Visitor {
             ast,
         }
@@ -39,7 +39,7 @@ impl<'v> Visitor<'v> {
         use ExpressionNode::*;
 
         match (&expression.0, expression.1) {
-            (&Binary { .. }, pos) => match self.type_expression(&expression) {
+            (&Binary { .. }, _) => match self.type_expression(&expression) {
                 Ok(_)    => Ok(()),
                 Err(err) => Err(err),
             }
