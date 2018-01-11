@@ -1,7 +1,8 @@
 pub mod parser;
 pub mod ast;
 
-pub use super::lexer;
+use super::lexer;
+use super::error::*;
 
 pub use self::parser::*;
 pub use self::ast::*;

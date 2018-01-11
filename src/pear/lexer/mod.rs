@@ -3,7 +3,7 @@ pub mod matcher;
 pub mod tokenizer;
 pub mod lexer;
 
-pub use super::error::*;
+use super::error::*;
 
 pub use self::token::*;
 pub use self::matcher::*;

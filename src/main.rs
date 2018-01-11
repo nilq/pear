@@ -3,12 +3,11 @@ extern crate colored;
 mod pear;
 use pear::lexer::*;
 use pear::parser::*;
+use pear::visitor::*;
 
 fn main() {
     let source =
-r#"
-10 + 10 - 1 * 2
-"#;
+r#"10 + 10  + 1 * "hey""#;
 
     let path = "source.pear";
 
@@ -18,7 +17,16 @@ r#"
     let mut parser = Parser::new(lexer.collect());
 
     match parser.parse() {
-        Ok(ast)       => println!("{:#?}", ast),
         Err(response) => response.display(&lines, path),
+        Ok(mut ast)   => {
+            println!("{:#?}", ast);
+            
+            let visitor = Visitor::new(&mut ast);
+
+            match visitor.validate() {
+                Err(response) => response.display(&lines, path),
+                Ok(_)         => (),
+            }
+        },
     }
 }

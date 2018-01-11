@@ -61,7 +61,7 @@ impl Parser {
 
         self.skip_types(vec![TokenType::EOL, TokenType::Whitespace])?;
 
-        if self.remaining() == 1 {
+        if self.remaining() == 0 {
             return Ok(Expression::new(EOF, self.position()))
         }
 
@@ -93,13 +93,11 @@ impl Parser {
                 self.skip_types(vec![TokenType::Whitespace])?;
 
                 if self.current_type() != TokenType::Operator {
-                    println!("{:#?}", ex_stack);
                     done = true;
                     continue
                 }
 
-                let (op, precedence) = Operator::from(&self.current_content()).unwrap();
-                self.next()?;
+                let (op, precedence) = Operator::from(&self.consume_type(TokenType::Operator)?).unwrap();
 
                 if precedence >= op_stack.last().unwrap().1 {
                     let left  = ex_stack.pop().unwrap();
@@ -149,7 +147,7 @@ impl Parser {
     }
     
     fn next(&mut self) -> ResResult<()> {
-        if self.top < self.tokens.len() {
+        if self.top <= self.tokens.len() {
             self.top += 1;
             Ok(())
         } else {
@@ -183,7 +181,7 @@ impl Parser {
     }
 
     fn remaining(&self) -> usize {
-        self.tokens.len() - self.top + 1
+        self.tokens.len() - self.top
     }
 
     pub fn current(&self) -> &Token {
