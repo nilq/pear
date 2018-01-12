@@ -9,7 +9,10 @@ use pear::compiler::*;
 
 fn main() {
     let source =
-r#"10 + 10  + 1 * 3"#;
+r#"
+1 |> 2
+1 <| 2
+"#;
 
     let path = "source.pear";
 
@@ -20,13 +23,10 @@ r#"10 + 10  + 1 * 3"#;
 
     match parser.parse() {
         Err(response) => response.display(&lines, path),
-        Ok(mut ast)   => {
-            println!("{:#?}", ast);
-            
+        Ok(ast)       => {
             let visitor = Visitor::new(&ast);
             
-            
-            println!("{} {}", "Checking".green().bold(), path);
+            println!("{} {}", "   Checking".green().bold(), path);
 
             match visitor.validate() {
                 Err(response) => response.display(&lines, path),
@@ -34,14 +34,11 @@ r#"10 + 10  + 1 * 3"#;
 
                     let compiler = Compiler::new(&ast);
                     
-                    println!("{} {}", "Compiling".green().bold(), path);
+                    println!("{} {}", "    Compiling".green().bold(), path);
 
-                    let compiled = match compiler.compile() {
+                    match compiler.compile() {
                         Err(response) => response.display(&lines, path),
-                        Ok(a)         => {
-                            
-                            println!("\n```lua\n{}```", a)
-                        }
+                        Ok(compiled)  => println!("\n```lua\n{}```", compiled),
                     };
                 }
             }

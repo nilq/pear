@@ -38,7 +38,34 @@ impl<'c> Compiler<'c> {
             Bool(ref n)       => format!("{}", n),
             Identifier(ref n) => format!("{}", n),
 
-            Binary {ref left, ref op, ref right} => {
+            Binary {ref left, ref op, ref right} => self.compile_operation(left, op, right)?,
+
+            _ => String::new(),
+        };
+
+        Ok(c)
+    }
+    
+    fn compile_operation(&self, left: &Expression, op: &Operator, right: &Expression) -> ResResult<String> {
+        use Operator::*;
+        use ExpressionNode::*;
+        
+        let c = match *op {
+            PipeRight => {
+                let compiled_left  = self.compile_expression(left)?;
+                let compiled_right = self.compile_expression(right)?;
+
+                format!("{}({})", compiled_left, compiled_right)
+            },
+            
+            PipeLeft => {
+                let compiled_left  = self.compile_expression(left)?;
+                let compiled_right = self.compile_expression(right)?;
+
+                format!("{}({})", compiled_right, compiled_left)
+            },
+            
+            _ => {
                 let compiled_left  = self.compile_expression(left)?;
                 let compiled_op    = self.compile_operator(op)?;
                 let compiled_right = self.compile_expression(right)?;
@@ -51,8 +78,6 @@ impl<'c> Compiler<'c> {
                     _             => format!("{}{}({})", compiled_left, compiled_op, compiled_right),
                 }
             }
-
-            _ => String::new(),
         };
 
         Ok(c)
@@ -62,21 +87,20 @@ impl<'c> Compiler<'c> {
         use Operator::*;
         
         let c = match *op {
-            Add => "+",
-            Sub => "-",
-            Mul => "*",
-            Div => "/",
-            Mod => "%",
-            Pow => "^",
-            Equal  => "==",
-            NEqual => "~=",
-            Lt => "<",
+            Add     => "+",
+            Sub     => "-",
+            Mul     => "*",
+            Div     => "/",
+            Mod     => "%",
+            Pow     => "^",
+            Equal   => "==",
+            NEqual  => "~=",
+            Lt      => "<",
             LtEqual => "<=",
-            Gt => ">",
+            Gt      => ">",
             GtEqual => ">=",
             Concat  => "..",
-
-            _ => "",
+            _       => "",
         };
         
         Ok(c.to_owned())

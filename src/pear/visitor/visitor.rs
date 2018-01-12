@@ -67,12 +67,12 @@ impl<'v> Visitor<'v> {
                         (Type::Number, Type::Number) => Type::Number,
                         (a, b)                       => return Err(make_error(Some(position), format!("can't subtract {:?} and {:?}", a, b)))
                     },
-                    
+
                     (a, &Mul, b) => match (a, b) {
                         (Type::Number, Type::Number) => Type::Number,
                         (a, b)                       => return Err(make_error(Some(position), format!("can't multiply {:?} and {:?}", a, b)))
                     },
-                    
+
                     _ => Type::Nil,
                 }
             },

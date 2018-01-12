@@ -96,6 +96,10 @@ impl Parser {
                     done = true;
                     continue
                 }
+                
+                if self.remaining() == 0 {
+                    return Err(make_error(Some(self.position()), "missing right hand expression".to_owned()))
+                }
 
                 let (op, precedence) = Operator::from(&self.consume_type(TokenType::Operator)?).unwrap();
 
@@ -181,7 +185,11 @@ impl Parser {
     }
 
     fn remaining(&self) -> usize {
-        self.tokens.len() - self.top
+        if self.top >= self.tokens.len() {
+            0
+        } else {
+            self.tokens.len() - self.top
+        }
     }
 
     pub fn current(&self) -> &Token {
