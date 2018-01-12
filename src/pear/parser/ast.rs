@@ -2,6 +2,8 @@ use super::lexer::*;
 
 use std::rc::Rc;
 
+use super::visitor::*;
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum ExpressionNode {
     Number(f64),
@@ -24,6 +26,11 @@ impl Expression {
 #[derive(Debug, Clone, PartialEq)]
 pub enum StatementNode {
     Expression(Expression),
+    Definition {
+        kind:  Option<Type>,
+        left:  Expression,
+        right: Option<Expression>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]

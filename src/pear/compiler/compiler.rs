@@ -25,7 +25,9 @@ impl<'c> Compiler<'c> {
         use StatementNode::*;
 
         match (&statement.0, statement.1) {
-            (&Expression(ref expr), _) => self.compile_expression(expr),
+            (&Expression(ref expr), _)                       => self.compile_expression(expr),
+            (&Definition {ref kind, ref left, ref right}, _) => self.compile_definition(left, right),
+            _                                                => Ok(String::new())
         }
     }
     
@@ -104,5 +106,17 @@ impl<'c> Compiler<'c> {
         };
         
         Ok(c.to_owned())
+    }
+    
+    fn compile_definition(&self, left: &Expression, right: &Option<Expression>) -> ResResult<String> {
+        let compiled_left  = self.compile_expression(&left)?;
+
+        let mut compiled = format!("local {} ", compiled_left);
+
+        if let Some(ref right) = *right {
+            compiled.push_str(&format!("= {}", self.compile_expression(&right)?))
+        }
+
+        Ok(compiled)
     }
 }

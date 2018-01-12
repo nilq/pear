@@ -15,7 +15,7 @@ impl Parser {
             top: 0,
         }
     }
-    
+
     pub fn parse(&mut self) -> ResResult<Vec<Statement>> {
         let mut statements = Vec::new();
 
@@ -25,12 +25,45 @@ impl Parser {
 
         Ok(statements)
     }
-    
+
     fn statement(&mut self) -> ResResult<Statement> {
-        use StatementNode::*;
+        use TokenType::*;
         
+        self.skip_types(vec![TokenType::Whitespace, TokenType::EOL])?;
+
         let node = match self.current_type() {
-            _ => Expression(self.expression()?)
+            Identifier => {
+                
+                let backup = self.top;
+                
+                let identifier      = ExpressionNode::Identifier(self.consume_type(Identifier)?);
+                let identifier_node = Expression(identifier, self.position());
+
+                self.skip_types(vec![TokenType::Whitespace])?;
+
+                match self.current_content().as_str() {
+                    ":" => {
+                        self.next()?;
+                        self.consume_content("=")?;
+                        
+                        self.skip_types(vec![TokenType::Whitespace])?;
+                        
+                        let right = self.expression()?;
+                        
+                        StatementNode::Definition {
+                            kind:  None,
+                            left:  identifier_node,
+                            right: Some(right),
+                        }
+                    },
+
+                    _ => {
+                        self.top = backup;
+                        StatementNode::Expression(identifier_node)
+                    }
+                }
+            },
+            _ => StatementNode::Expression(self.expression()?)
         };
 
         Ok(Statement::new(node, self.position()))
@@ -70,6 +103,11 @@ impl Parser {
             TokenType::Str        => Str(self.consume_type(TokenType::Str)?),
             TokenType::Bool       => Bool(self.consume_type(TokenType::Bool)? == "true"),
             TokenType::Identifier => Identifier(self.consume_type(TokenType::Identifier)?),
+            
+            TokenType::Whitespace => {
+                self.next()?;
+                return Ok(self.atom()?)
+            }
 
             t => return Err(make_error(Some(self.position()), format!("token type '{:?}' currently unimplemented", t)))
         };

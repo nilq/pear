@@ -1,0 +1,6 @@
+point := {
+  x: 100
+  y: 100
+}
+
+point.hmm: number = 100

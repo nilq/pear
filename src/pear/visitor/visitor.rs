@@ -18,7 +18,7 @@ impl<'v> Visitor<'v> {
             ast,
         }
     }
-    
+
     pub fn validate(&self) -> ResResult<()> {
         for statement in self.ast.iter() {
             self.visit_statement(statement)?
@@ -26,12 +26,13 @@ impl<'v> Visitor<'v> {
         
         Ok(())
     }
-    
+
     fn visit_statement(&self, statement: &Statement) -> ResResult<()> {
         use StatementNode::*;
 
         match (&statement.0, statement.1) {
             (&Expression(ref expr), _) => self.visit_expression(expr),
+            _                          => Ok(()),
         }
     }
     

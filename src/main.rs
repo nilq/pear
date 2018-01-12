@@ -8,11 +8,9 @@ use pear::visitor::*;
 use pear::compiler::*;
 
 fn main() {
-    let source =
-r#"
-1 |> 2
-1 <| 2
-"#;
+    let source = r#"
+foo := 1 <| 2
+    "#;
 
     let path = "source.pear";
 
