@@ -1,32 +1,45 @@
 ## pear
 a strong and very confused programming language
 
-### beautiful syntax
+### a syntax
 
+---
+
+assignments
 ```
 foo: number = 100 + 100
+
+foo *=
 ```
 
 ---
 
 fib
-
-```
-fib: fun (a: number) -> number {
-  match a {
-    | 0 -> 0
-    | 1 -> 1
-    | n -> (fib n - 1) + (fib n - 2)
-  } 
-}
-```
-
-equivalent to:
-
 ```
 fib: match n -> number {
-  | 0 -> 0
-  | 1 -> 1
-  | n -> (fib n - 1) + (fib n - 2)
+  0 => 0
+  1 => 1
+  n => (fib n - 1) + (fib n - 2)
 }
+```
+
+---
+
+functions
+```
+fizz: fun (a: number) -> number {
+  match a % 3 {
+    0 => print "fizzz"
+    _ => a
+  }
+}
+
+buzz: fun (a: number) -> number {
+  match a % 5 {
+    0 => print "buzz"
+    _ => a
+  }
+}
+
+fizzbuzz := print >> fizz >> buzz
 ```
