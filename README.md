@@ -27,16 +27,21 @@ fib: match n -> number {
 
 functions
 ```
+puts: fun (a: number) -> number {
+  print a
+  0
+}
+
 fizz: fun (a: number) -> number {
   match a % 3 {
-    0 => print "fizzz"
+    0 => puts "fizzz"
     _ => a
   }
 }
 
 buzz: fun (a: number) -> number {
   match a % 5 {
-    0 => print "buzz"
+    0 => puts "buzz"
     _ => a
   }
 }
